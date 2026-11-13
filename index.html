@@ -234,17 +234,38 @@
     let current = 0;
     let score = 0;
     let locked = false;
+    let quizQuestions = [];
     const $ = (id) => document.getElementById(id);
     const questionEl = $("question");
     const answersEl = $("answers");
     const feedbackEl = $("feedback");
 
+    function shuffle(items) {
+      const shuffled = [...items];
+      for (let index = shuffled.length - 1; index > 0; index--) {
+        const swapIndex = Math.floor(Math.random() * (index + 1));
+        [shuffled[index], shuffled[swapIndex]] = [shuffled[swapIndex], shuffled[index]];
+      }
+      return shuffled;
+    }
+
+    function createQuizQuestions() {
+      return shuffle(questions).map((question) => {
+        const shuffledAnswers = shuffle(question.answers.map((answer, index) => ({ answer, index })));
+        return {
+          ...question,
+          answers: shuffledAnswers.map(({ answer }) => answer),
+          correct: shuffledAnswers.findIndex(({ index }) => index === question.correct)
+        };
+      });
+    }
+
     function renderQuestion() {
-      const item = questions[current];
+      const item = quizQuestions[current];
       locked = false;
-      $("questionCount").textContent = `Question ${current + 1} of ${questions.length}`;
+      $("questionCount").textContent = `Question ${current + 1} of ${quizQuestions.length}`;
       $("score").textContent = score;
-      $("progress").style.width = `${((current + 1) / questions.length) * 100}%`;
+      $("progress").style.width = `${((current + 1) / quizQuestions.length) * 100}%`;
       $("questionEmoji").textContent = item.emoji;
       questionEl.textContent = item.question;
       feedbackEl.textContent = "";
@@ -262,7 +283,7 @@
     function chooseAnswer(selected) {
       if (locked) return;
       locked = true;
-      const item = questions[current];
+      const item = quizQuestions[current];
       const buttons = answersEl.querySelectorAll(".answer");
       buttons.forEach((button, index) => {
         button.disabled = true;
@@ -286,8 +307,8 @@
     function showResults() {
       $("quizView").classList.add("hidden");
       $("resultView").classList.remove("hidden");
-      $("finalScore").textContent = `${score} / ${questions.length}`;
-      const ratio = score / questions.length;
+      $("finalScore").textContent = `${score} / ${quizQuestions.length}`;
+      const ratio = score / quizQuestions.length;
       $("resultEmoji").textContent = ratio === 1 ? "🏆" : ratio >= .7 ? "🚀" : ratio >= .4 ? "🌙" : "🔭";
       $("resultTitle").textContent = ratio === 1 ? "Perfect orbit!" : ratio >= .7 ? "Mission accomplished!" : ratio >= .4 ? "Nice flight, explorer!" : "Every mission teaches us!";
       $("resultText").textContent = ratio === 1 ? "You’ve mapped the cosmos with flawless precision." : `You discovered ${score} cosmic facts. Ready for another journey through the stars?`;
@@ -296,6 +317,7 @@
 
     function restart() {
       current = 0; score = 0;
+      quizQuestions = createQuizQuestions();
       $("quizView").classList.remove("hidden");
       $("resultView").classList.add("hidden");
       renderQuestion();
@@ -325,6 +347,7 @@
       $("themeToggle").textContent = light ? "🌙" : "☀️";
       $("themeToggle").setAttribute("aria-label", light ? "Switch to dark theme" : "Switch to light theme");
     });
+    quizQuestions = createQuizQuestions();
     renderQuestion();
   </script>
 </body>
