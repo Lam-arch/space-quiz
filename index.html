@@ -176,6 +176,8 @@
     .result h2 { margin-bottom: 10px; }
     .result p { margin: 0 auto 25px; max-width: 430px; color: var(--muted); line-height: 1.6; }
     .final-score { margin-bottom: 25px; font-family: "Space Grotesk", sans-serif; font-size: 54px; font-weight: 700; color: var(--accent-2); }
+    .personal-best { margin: -8px auto 25px; color: var(--muted); font-size: 14px; font-weight: 600; }
+    .personal-best strong { color: var(--accent-2); }
     .restart { width: auto; padding-inline: 32px; }
     .confetti { position: fixed; top: -20px; z-index: 20; width: 9px; height: 15px; pointer-events: none; animation: confetti 1.2s linear forwards; }
     @keyframes confetti { to { transform: translateY(110vh) rotate(620deg); opacity: 0; } }
@@ -212,6 +214,7 @@
         <h2 id="resultTitle">Mission complete!</h2>
         <p id="resultText"></p>
         <div class="final-score" id="finalScore">0 / 10</div>
+        <p class="personal-best" id="personalBest"></p>
         <button class="next restart" id="restartButton">Launch again ↻</button>
       </div>
     </section>
@@ -235,6 +238,7 @@
     let score = 0;
     let locked = false;
     let quizQuestions = [];
+    const personalBestKey = "cosmic-curiosity-personal-best";
     const $ = (id) => document.getElementById(id);
     const questionEl = $("question");
     const answersEl = $("answers");
@@ -258,6 +262,10 @@
           correct: shuffledAnswers.findIndex(({ index }) => index === question.correct)
         };
       });
+    }
+
+    function getPersonalBest() {
+      return Number(localStorage.getItem(personalBestKey)) || 0;
     }
 
     function renderQuestion() {
@@ -300,14 +308,22 @@
         feedbackEl.textContent = `Not quite! The answer is “${item.answers[item.correct]}”. Keep exploring! 🌠`;
         feedbackEl.className = "feedback wrong";
       }
-      $("nextButton").textContent = current === questions.length - 1 ? "View results →" : "Next mission →";
+      $("nextButton").textContent = current === quizQuestions.length - 1 ? "View results →" : "Next mission →";
       $("nextButton").classList.remove("hidden");
     }
 
     function showResults() {
+      const previousBest = getPersonalBest();
+      const isNewBest = score > previousBest;
+      if (isNewBest) localStorage.setItem(personalBestKey, score);
       $("quizView").classList.add("hidden");
       $("resultView").classList.remove("hidden");
       $("finalScore").textContent = `${score} / ${quizQuestions.length}`;
+      $("personalBest").innerHTML = isNewBest
+        ? `New personal best! <strong>${score} / ${quizQuestions.length}</strong>`
+        : previousBest
+          ? `Personal best: <strong>${previousBest} / ${quizQuestions.length}</strong>`
+          : "No personal best yet — make this mission count.";
       const ratio = score / quizQuestions.length;
       $("resultEmoji").textContent = ratio === 1 ? "🏆" : ratio >= .7 ? "🚀" : ratio >= .4 ? "🌙" : "🔭";
       $("resultTitle").textContent = ratio === 1 ? "Perfect orbit!" : ratio >= .7 ? "Mission accomplished!" : ratio >= .4 ? "Nice flight, explorer!" : "Every mission teaches us!";
@@ -338,7 +354,7 @@
     }
 
     $("nextButton").addEventListener("click", () => {
-      if (current === questions.length - 1) showResults();
+      if (current === quizQuestions.length - 1) showResults();
       else { current++; renderQuestion(); }
     });
     $("restartButton").addEventListener("click", restart);
